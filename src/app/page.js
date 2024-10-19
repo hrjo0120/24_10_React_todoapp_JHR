@@ -143,7 +143,27 @@ const NewTodoForm = ({ noticeSnackbarStatus }) => {
     </>
   );
 };
-const TodoListItem = ({ todo, index, openDrawer }) => {
+const TodoListItem = ({ todo, index, removeTodo, modifyTodo, noticeSnackbarStatus }) => {
+  const [isEditing, setIsEditing] = React.useState(false); // 수정 모드 상태
+  const [newContent, setNewContent] = React.useState(todo.content); // 수정할 내용
+
+  const handleContentClick = () => {
+    setIsEditing(true); // 수정 모드로 전환
+  };
+
+  const handleSave = () => {
+    modifyTodo(todo.id, newContent); // 수정 완료 시 내용 저장
+    setIsEditing(false); // 수정 모드 종료
+    setTimeout(() => {
+      noticeSnackbarStatus.open(`${todo.id}번 할 일이 수정되었습니다.`);
+    }, 200); // 200ms 딜레이를 준 후 알림 표시
+  };
+
+  const handleDelete = () => {
+    removeTodo(todo.id); // 할 일 삭제
+    noticeSnackbarStatus.open(`${todo.id}번 할 일이 삭제되었습니다.`, `error`); // 삭제 후 알림 표시
+  };
+
   return (
     <>
       <li className="tw-mb-3" key={todo.id}>
@@ -170,16 +190,28 @@ const TodoListItem = ({ todo, index, openDrawer }) => {
               />
             </Button>
             <div className="tw-bg-[#dcdcdc] tw-w-[2px] tw-h-[60px] tw-self-center"></div>
-            <div className="tw-bg-blue-300 tw-flex tw-items-center tw-p-3 tw-flex-grow hover:tw-text-[--mui-color-primary-main] tw-whitespace-pre-wrap tw-leading-relaxed tw-break-words">
-              할 일 : {todo.content}
+            {/* 할 일 수정 가능한 부분 */}
+            <div
+              className={`tw-flex tw-items-center tw-p-3 tw-flex-grow tw-whitespace-pre-wrap tw-leading-relaxed ${
+                isEditing ? 'tw-bg-white' : 'tw-bg-blue-300'
+              }`} // 수정 모드일 때 배경색을 하얀색으로 변경
+            >
+              {isEditing ? (
+                <TextField
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                  onBlur={handleSave} // 수정 완료 후 저장
+                  autoFocus
+                />
+              ) : (
+                <span onClick={handleContentClick}>할 일 : {todo.content}</span>
+              )}
             </div>
+            {/* 삭제 버튼 */}
             <Button
-              onClick={() => {
-                openDrawer(todo.id);
-              }}
-              className="tw-flex-shrink-0 tw-rounded-[0_10px_10px_0]"
-              color="inherit">
-              <FaEllipsisV className="tw-text-[#dcdcdc] tw-text-2xl" />
+              onClick={handleDelete} // 삭제 기능
+              className="tw-flex-shrink-0 tw-rounded-[0_10px_10px_0] tw-bg-red-500 tw-text-white">
+              <FaTrash className="tw-text-2xl" />
             </Button>
           </div>
         </div>
@@ -297,7 +329,7 @@ function TodoOptionDrawer({ status, noticeSnackbarStatus }) {
       <SwipeableDrawer anchor="top" open={status.opened} onClose={status.close} onOpen={() => {}}>
         <List>
           <ListItem className="tw-flex tw-gap-2 tw-p-[15px]">
-            <span className="tw-text-[--mui-color-primary-main]">{todo?.id}번</span>{' '}
+            {/* <span className="tw-text-[--mui-color-primary-main]">{todo?.id}번</span>{' '} */}
             {/*옵셔널 체이닝*/}
             <span className="tw-text-[--mui-color-primary-main]">{status.todoId}번 </span>
             <span>Your Todo</span>
@@ -328,12 +360,6 @@ const TodoList = ({ noticeSnackbarStatus }) => {
 
   return (
     <>
-      <TodoOptionDrawer
-        status={todoOptionDrawerStatus}
-        todosStatus={todosStatus}
-        noticeSnackbarStatus={noticeSnackbarStatus}
-      />
-
       <nav>
         할 일 갯수 : {todosStatus.todos.length}
         <ul>
@@ -342,8 +368,9 @@ const TodoList = ({ noticeSnackbarStatus }) => {
               key={todo.id}
               todo={todo}
               index={index}
-              openDrawer={todoOptionDrawerStatus.open}
-              todosStatus={todosStatus}
+              removeTodo={todosStatus.removeTodo} // 삭제 함수 전달
+              modifyTodo={todosStatus.modifyTodo} // 수정 함수 전달
+              noticeSnackbarStatus={noticeSnackbarStatus} // 알림 상태 전달
             />
           ))}
         </ul>
